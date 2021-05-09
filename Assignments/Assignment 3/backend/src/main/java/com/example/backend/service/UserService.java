@@ -30,7 +30,7 @@ public class UserService {
 
     private final PasswordEncoder encoder;
 
-    private User findById(Integer id) {
+    public User findById(Integer id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + id));
     }

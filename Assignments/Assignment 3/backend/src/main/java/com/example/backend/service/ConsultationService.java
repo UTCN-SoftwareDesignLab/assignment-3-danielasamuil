@@ -5,10 +5,7 @@ import com.example.backend.model.Consultation;
 import com.example.backend.model.Patient;
 import com.example.backend.model.User;
 import com.example.backend.model.dtos.ConsultationDto;
-import com.example.backend.model.dtos.PatientDto;
 import com.example.backend.repository.ConsultationRepository;
-import com.example.backend.repository.PatientRepository;
-import com.example.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,16 +13,15 @@ import javax.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.example.backend.model.ConsultationSpecifications.equalDates;
-import static com.example.backend.model.ConsultationSpecifications.freeDoctor;
+import static com.example.backend.specification.ConsultationSpecifications.*;
 
 @Service
 @RequiredArgsConstructor
 public class ConsultationService {
 
-    private final UserRepository userRepository;
+    private final UserService userService;
 
-    private final PatientRepository patientRepository;
+    private final PatientService patientService;
 
     private final ConsultationRepository consultationRepository;
 
@@ -53,51 +49,60 @@ public class ConsultationService {
         consultationRepository.deleteById(id);
     }
 
-    public ConsultationDto update(Integer id, ConsultationDto consultationDto){
-        User doctor;
+    private boolean dateIsAvailableForBothDoctorAndPatient(User doctor, Patient patient, ConsultationDto consultationDto) {
+
+        List<Consultation> alreadyBusyDateDoctor = consultationRepository.findAll(
+                withDoctorAndTimeslot(doctor.getId(), consultationDto.getScheduled())
+        );
+
+        List<Consultation> alreadyBusyDatePatient = consultationRepository.findAll(
+                withPatientAndTimeslot(patient.getId(), consultationDto.getScheduled())
+        );
+
+        if (alreadyBusyDateDoctor.isEmpty() && alreadyBusyDatePatient.isEmpty())
+            return true;
+        else
+            return false;
+    }
+
+    public ConsultationDto update(Integer id, ConsultationDto consultationDto) throws Exception {
 
         Consultation consultation = findById(id);
 
-        if(userRepository.findById(consultationDto.getDoctorId()) != null) {
-            doctor = userRepository.findById(consultationDto.getDoctorId()).get();
+        User doctor = userService.findById(consultationDto.getDoctorId());
+
+        Patient patient = patientService.findById(consultationDto.getPatientId());
+
+        if (dateIsAvailableForBothDoctorAndPatient(doctor, patient, consultationDto)) {
+
+            consultation.setDoctor(doctor);
+
+            consultation.setPatient(patient);
+
+            consultation.setDetails(consultationDto.getDetails());
+
+            return consultationMapper.toDto(
+                    consultationRepository.save(consultation)
+            );
+
+        } else {
+            throw new Exception("Cannot update the consultation");
         }
-        else doctor = null;
 
-        List<Consultation> notFreeDoctor =  consultationRepository.findAll(
-                freeDoctor(doctor.getId()).and(equalDates(consultationDto.getScheduled())));
-
-        consultation.setDetails(consultationDto.getDetails());
-
-        if(notFreeDoctor.size() == 0){
-            consultation.setScheduled(consultationDto.getScheduled());
-        }
-
-        return consultationMapper.toDto(
-                consultationRepository.save(consultation)
-        );
     }
 
-    public boolean create(ConsultationDto consultationDto) {
-        User doctor;
+    public ConsultationDto create(ConsultationDto consultationDto) throws Exception {
 
-        if(patientRepository.findById(consultationDto.getPatientId()) != null ) {
-            Patient patient = patientRepository.findById(consultationDto.getPatientId()).get();
-        } else
-            return false;
+        Patient patient = patientService.findById(consultationDto.getPatientId());
 
-        if(userRepository.findById(consultationDto.getDoctorId()) != null) {
-            doctor = userRepository.findById(consultationDto.getDoctorId()).get();
-        } else
-            return false;
+        User doctor = userService.findById(consultationDto.getDoctorId());
 
-        List<Consultation> notFreeDoctor =  consultationRepository.findAll(
-                freeDoctor(doctor.getId()).and(equalDates(consultationDto.getScheduled())));
-
-        if(notFreeDoctor.size() == 0){
-            consultationRepository.save(consultationMapper.fromDto(consultationDto));
-            return true;
+        if (dateIsAvailableForBothDoctorAndPatient(doctor, patient, consultationDto)) {
+            return consultationMapper.toDto(
+                    consultationRepository.save(consultationMapper.fromDto(consultationDto))
+            );
+        } else {
+            throw new Exception("Cannot create the consultation");
         }
-        else
-            return false;
     }
 }

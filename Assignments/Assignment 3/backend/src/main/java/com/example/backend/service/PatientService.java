@@ -19,7 +19,7 @@ public class PatientService {
 
     private final PatientMapper patientMapper;
 
-    private Patient findById(Integer id) {
+    public Patient findById(Integer id) {
         return patientRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Patient not found: " + id));
     }
