@@ -9,5 +9,5 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PatientArrivedMessage {
     private String dateOfConsultation;
-    private String patientName;
+    private Integer patientId;
 }
