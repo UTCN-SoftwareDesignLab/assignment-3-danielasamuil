@@ -57,11 +57,6 @@ public class UserService {
 
         Set<Role> roles = new HashSet<>();
 
-        Role defaultRole = roleRepository.findByName(ERole.SECRETARY)
-                .orElseThrow(() -> new RuntimeException("Cannot find SECRETARY role"));
-
-        roles.add(defaultRole);
-
         User user = userMapper.fromDto(userDto);
 
         user.setUsername(userDto.getName());

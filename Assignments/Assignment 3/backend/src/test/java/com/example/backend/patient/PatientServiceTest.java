@@ -61,7 +61,7 @@ public class PatientServiceTest {
         when(patientMapper.toDto(patient1)).thenReturn(patient2);
         when(patientRepository.save(patient1)).thenReturn(patient1);
 
-        Assertions.assertEquals(patient1.getId(), patientService.create(patient2).getId());
+        Assertions.assertEquals(patient1.getAddress(), patientService.create(patient2).getAddress());
     }
 
     @Test

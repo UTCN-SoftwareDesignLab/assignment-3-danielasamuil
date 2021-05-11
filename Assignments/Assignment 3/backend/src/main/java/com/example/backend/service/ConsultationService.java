@@ -27,7 +27,7 @@ public class ConsultationService {
 
     private final ConsultationMapper consultationMapper;
 
-    private Consultation findById(Integer id) {
+    public Consultation findById(Integer id) {
         return consultationRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Consultation not found: " + id));
     }
@@ -51,15 +51,15 @@ public class ConsultationService {
 
     private boolean dateIsAvailableForBothDoctorAndPatient(User doctor, Patient patient, ConsultationDto consultationDto) {
 
-        List<Consultation> alreadyBusyDateDoctor = consultationRepository.findAll(
+        List<Consultation> consultationsByDoctorAndTimeslot = consultationRepository.findAll(
                 withDoctorAndTimeslot(doctor.getId(), consultationDto.getScheduled())
         );
 
-        List<Consultation> alreadyBusyDatePatient = consultationRepository.findAll(
+        List<Consultation> consultationsByPatientAndTimeslot = consultationRepository.findAll(
                 withPatientAndTimeslot(patient.getId(), consultationDto.getScheduled())
         );
 
-        if (alreadyBusyDateDoctor.isEmpty() && alreadyBusyDatePatient.isEmpty())
+        if (consultationsByDoctorAndTimeslot.isEmpty() && consultationsByPatientAndTimeslot.isEmpty())
             return true;
         else
             return false;

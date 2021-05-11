@@ -1,5 +1,7 @@
 package com.example.backend.model.dtos;
 
+import com.example.backend.model.Patient;
+import com.example.backend.model.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

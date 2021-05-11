@@ -2,12 +2,18 @@ package com.example.backend.consultation;
 
 import com.example.backend.TestCreationFactory;
 import com.example.backend.mapper.ConsultationMapper;
+import com.example.backend.mapper.PatientMapper;
+import com.example.backend.mapper.UserMapper;
 import com.example.backend.model.Consultation;
 import com.example.backend.model.Patient;
+import com.example.backend.model.Role;
 import com.example.backend.model.User;
 import com.example.backend.model.dtos.ConsultationDto;
+import com.example.backend.model.dtos.PatientDto;
+import com.example.backend.model.dtos.UserDto;
 import com.example.backend.repository.ConsultationRepository;
 import com.example.backend.repository.PatientRepository;
+import com.example.backend.repository.RoleRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.service.ConsultationService;
 import com.example.backend.service.PatientService;
@@ -18,10 +24,13 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
+import static com.example.backend.model.ERole.SECRETARY;
 import static org.mockito.Mockito.when;
 
 public class ConsultationServiceTest {
@@ -38,13 +47,7 @@ public class ConsultationServiceTest {
     private UserService userService;
 
     @Mock
-    private UserRepository userRepository;
-
-    @Mock
     private PatientService patientService;
-
-    @Mock
-    private PatientRepository patientRepository;
 
     @BeforeEach
     void setUp() {
@@ -65,41 +68,54 @@ public class ConsultationServiceTest {
     void createConsultation() throws Exception {
 
         Patient patient = (Patient) TestCreationFactory.listOf(Patient.class).get(0);
-        User user = (User) TestCreationFactory.listOf(User.class).get(0);
+        User doctor = (User) TestCreationFactory.listOf(User.class).get(0);
 
         Consultation consultation = (Consultation) TestCreationFactory.listOf(Consultation.class).get(0);
-        consultation.setDoctor(user);
+        consultation.setDoctor(doctor);
         consultation.setPatient(patient);
 
         ConsultationDto consultationDTO = ConsultationDto.builder()
                 .id(consultation.getId())
                 .details(consultation.getDetails())
+                .doctorId(doctor.getId())
+                .patientId(patient.getId())
+                .scheduled(consultation.getScheduled())
                 .build();
 
         when(consultationMapper.fromDto(consultationDTO)).thenReturn(consultation);
         when(consultationMapper.toDto(consultation)).thenReturn(consultationDTO);
+        when(userService.findById(consultationDTO.getDoctorId())).thenReturn(doctor);
+        when(patientService.findById(consultationDTO.getPatientId())).thenReturn(patient);
         when(consultationRepository.save(consultation)).thenReturn(consultation);
 
-        when(userRepository.findById(consultationDTO.getDoctorId())).thenReturn(Optional.of(user));
-        when(patientRepository.findById(consultationDTO.getPatientId())).thenReturn(Optional.of(patient));
-
-        Assertions.assertEquals(consultationService.create(consultationDTO), consultation);
+        Assertions.assertEquals(consultationService.create(consultationDTO), consultationDTO);
     }
 
     @Test
     void editConsultation() throws Exception {
-        Consultation consultation1 = Consultation.builder()
-                .details("Details1")
+        Patient patient = (Patient) TestCreationFactory.listOf(Patient.class).get(0);
+        User doctor = (User) TestCreationFactory.listOf(User.class).get(0);
+
+        Consultation consultation = (Consultation) TestCreationFactory.listOf(Consultation.class).get(0);
+        consultation.setDoctor(doctor);
+        consultation.setPatient(patient);
+
+        ConsultationDto consultationDto = ConsultationDto.builder()
+                .id(consultation.getId())
+                .scheduled(consultation.getScheduled())
+                .patientId(patient.getId())
+                .doctorId(doctor.getId())
+                .details(consultation.getDetails())
                 .build();
 
-        ConsultationDto consultation2 = ConsultationDto.builder()
-                .details("Details2")
-                .build();
+        when(consultationMapper.fromDto(consultationDto)).thenReturn(consultation);
+        when(consultationMapper.toDto(consultation)).thenReturn(consultationDto);
+        when(userService.findById(consultationDto.getDoctorId())).thenReturn(doctor);
+        when(patientService.findById(consultationDto.getPatientId())).thenReturn(patient);
+        when(consultationRepository.save(consultation)).thenReturn(consultation);
+        when(consultationRepository.findById(consultation.getId())).thenReturn(Optional.of(consultation));
 
-        when(consultationRepository.findById(consultation1.getId())).thenReturn(Optional.of(consultation1));
-
-        consultationService.update(consultation1.getId(), consultation2);
-        Assertions.assertEquals("Details2", consultation1.getDetails());
+        Assertions.assertEquals(consultationService.update(consultationDto.getId(), consultationDto), consultationDto);
     }
 
     @Test
@@ -115,10 +131,10 @@ public class ConsultationServiceTest {
     @Test
     void delete() {
         Patient patient = (Patient) TestCreationFactory.listOf(Patient.class).get(0);
-        User user = (User) TestCreationFactory.listOf(User.class).get(0);
+        User doctor = (User) TestCreationFactory.listOf(User.class).get(0);
 
         Consultation consultation = (Consultation) TestCreationFactory.listOf(Consultation.class).get(0);
-        consultation.setDoctor(user);
+        consultation.setDoctor(doctor);
         consultation.setPatient(patient);
 
         when(consultationRepository.save(consultation)).thenReturn(consultation);
@@ -129,3 +145,4 @@ public class ConsultationServiceTest {
         Assertions.assertEquals(all.size(), 0);
     }
 }
+
